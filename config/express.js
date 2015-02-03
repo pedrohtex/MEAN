@@ -6,10 +6,15 @@ var express = require('express'),
     config = require('./config'),
     session = require('express-session'),
     passport = require('passport'),
-    flash = require('connect-flash');
+    flash = require('connect-flash'),
+    http = require('http'),
+    socketio = require('socket.io'),
+    MongoStore = require('connect-mongo')(session);
 
-module.exports = function () {
+module.exports = function (mongo) {
     var app = express();
+    var server = http.createServer(app);
+    var io = socketio.listen(server);
     
     if (process.env.NODE_ENV === 'development') {
         app.use(morgan('dev'));
@@ -24,10 +29,17 @@ module.exports = function () {
     app.use(bodyParser.json());
     app.use(methodOverride());
     
+    console.log(mongo.connection.db.databaseName);
+    
+    var mongoStore = new MongoStore({
+        db: mongo.connection.db.databaseName
+    });
+    
     app.use(session({
         saveUninitialized: true,
         resave: true,
-        secret: config.sessionSecret
+        secret: config.sessionSecret,
+        store: mongoStore
     }));
     
     app.set('views', './app/views');
@@ -43,5 +55,7 @@ module.exports = function () {
     
     app.use(express.static('./public'));
     
-    return app;
+    require('./socketio')(server, io, mongoStore);
+    
+    return server;
 };
