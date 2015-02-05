@@ -82,7 +82,7 @@ exports.delete = function (req, res) {
             res.json(article);
         }
     });
-}
+};
 
 exports.hasAuthorization = function (req, res, next) {
     if (req.article.creator.id !== req.user.id) {
